@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Minimalist Ledger</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #fff; color: #000; }
+        .tap-highlight-none { -webkit-tap-highlight-color: transparent; }
+    </style>
+</head>
+<body class="p-6">
+
+    <header class="mt-12 mb-16">
+        <p class="text-gray-400 text-sm uppercase tracking-widest mb-1">Total Spending · This Month</p>
+        <h1 id="total-amount" class="text-6xl font-bold tracking-tight">$0</h1>
+    </header>
+
+    <main>
+        <h2 class="text-gray-400 text-xs font-medium uppercase mb-4">Recent Transactions</h2>
+        <div id="list" class="space-y-6">
+            </div>
+    </main>
+
+    <button onclick="toggleModal()" class="fixed bottom-10 right-10 w-16 h-16 bg-black text-white rounded-full text-3xl shadow-2xl tap-highlight-none">+</button>
+
+    <div id="modal" class="fixed inset-0 bg-white hidden p-8">
+        <div class="flex justify-between items-center mb-12">
+            <h3 class="text-2xl font-bold">New Entry</h3>
+            <button onclick="toggleModal()" class="text-gray-400">Close</button>
+        </div>
+        
+        <input type="number" id="amount" placeholder="0" class="w-full text-6xl font-bold mb-8 outline-none border-b border-gray-100 pb-4 focus:border-black transition-colors" autofocus>
+        
+        <div class="grid grid-cols-3 gap-4 mb-8">
+            <button onclick="setCategory('Food')" class="cat-btn border py-3 rounded-xl hover:bg-black hover:text-white transition-all text-sm">Food</button>
+            <button onclick="setCategory('Transport')" class="cat-btn border py-3 rounded-xl hover:bg-black hover:text-white transition-all text-sm">Transport</button>
+            <button onclick="setCategory('Play')" class="cat-btn border py-3 rounded-xl hover:bg-black hover:text-white transition-all text-sm">Play</button>
+            <button onclick="setCategory('Others')" class="cat-btn border py-3 rounded-xl hover:bg-black hover:text-white transition-all text-sm">Others</button>
+        </div>
+
+        <button onclick="saveEntry()" class="w-full bg-black text-white py-5 rounded-2xl font-bold text-lg">Save Transaction</button>
+    </div>
+
+    <script>
+        let selectedCategory = 'Others';
+        let records = JSON.parse(localStorage.getItem('my_ledger') || '[]');
+
+        function toggleModal() {
+            const m = document.getElementById('modal');
+            m.classList.toggle('hidden');
+            if(!m.classList.contains('hidden')) document.getElementById('amount').focus();
+        }
+
+        function setCategory(cat) {
+            selectedCategory = cat;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.classList.remove('bg-black', 'text-white');
+                if(btn.innerText === cat) btn.classList.add('bg-black', 'text-white');
+            });
+        }
+
+        function saveEntry() {
+            const amount = document.getElementById('amount').value;
+            if(!amount) return alert('Please enter an amount');
+            
+            const entry = {
+                amount: parseFloat(amount),
+                category: selectedCategory,
+                date: new Date().toISOString()
+            };
+
+            records.unshift(entry);
+            localStorage.setItem('my_ledger', JSON.stringify(records));
+            
+            document.getElementById('amount').value = '';
+            toggleModal();
+            render();
+        }
+
+        function render() {
+            const list = document.getElementById('list');
+            const totalDisplay = document.getElementById('total-amount');
+            let total = 0;
+            const currentMonth = new Date().getMonth();
+
+            list.innerHTML = '';
+            records.forEach((r, index) => {
+                const date = new Date(r.date);
+                // 累計當月支出
+                if(date.getMonth() === currentMonth) {
+                    total += r.amount;
+                }
+
+                // 只顯示最近 10 筆
+                if(index < 10) {
+                    list.innerHTML += `
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="font-bold text-lg">${r.category}</div>
+                                <div class="text-gray-400 text-xs">${date.toLocaleDateString()}</div>
+                            </div>
+                            <div class="font-bold text-xl">-$${r.amount}</div>
+                        </div>
+                    `;
+                }
+            });
+
+            totalDisplay.innerText = `$${total.toLocaleString()}`;
+        }
+
+        render();
+    </script>
+</body>
+</html>
