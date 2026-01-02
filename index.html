@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>可愛記帳本</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'cream': '#FFFBF5',
+                        'soft-brown': '#6B5B55',
+                        'cute-pink': '#FF9AA2',
+                        'cute-blue': '#A2CFFE',
+                        'cute-yellow': '#FDFD96',
+                        'cute-green': '#B5EAD7',
+                    },
+                    borderRadius: {
+                        '3xl': '1.5rem',
+                        '4xl': '2rem',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 讓整體字型看起來更圓潤友善 */
+        body { 
+            font-family: "Nunito", "Noto Sans TC", sans-serif; 
+            background-color: var(--cream); 
+            color: var(--soft-brown);
+            /* 防止手機點擊時出現灰色區塊 */
+            -webkit-tap-highlight-color: transparent; 
+        }
+        /* 按鈕點擊時的可愛彈跳效果 */
+        .btn-bounce:active { transform: scale(0.95); }
+        /* 移除數字輸入框的上下箭頭 */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="bg-cream p-6 min-h-screen bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSIjRkY5QUEyIiBmaWxsLW9wYWNpdHk9IjAuMSIgZmlsbC1ydWxlPSJldmVub2RkIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIyIi8+PC9nPjwvc3ZnPg==')]">
+
+    <header class="mt-16 mb-12 text-center">
+        <p class="text-cute-pink font-bold tracking-widest mb-3 text-lg">✨ 這個月花了多少錢？</p>
+        <h1 id="total-amount" class="text-6xl font-black tracking-tight text-cute-pink drop-shadow-sm" style="-webkit-text-stroke: 2px #fff;">$0</h1>
+    </header>
+
+    <main class="mb-32">
+        <h2 class="text-cute-pink/80 font-bold text-sm mb-6 ml-2">🌷 最近的小敗家紀錄</h2>
+        <div id="list" class="space-y-4">
+            </div>
+    </main>
+
+    <button onclick="toggleModal()" class="btn-bounce fixed bottom-8 right-8 w-16 h-16 bg-cute-pink text-white rounded-full text-4xl shadow-lg shadow-cute-pink/40 flex items-center justify-center leading-none pb-1">+</button>
+
+    <div id="modal" class="fixed inset-0 bg-cream/95 backdrop-blur-sm hidden p-6 z-50 flex flex-col justify-center transition-all duration-300 opacity-0 scale-95">
+        <div class="bg-white p-8 rounded-4xl shadow-xl border-4 border-cute-pink/20">
+            <div class="flex justify-between items-center mb-10">
+                <h3 class="text-2xl font-bold text-cute-pink">📝 記上一筆</h3>
+                <button onclick="toggleModal()" class="text-gray-400 hover:text-cute-pink bg-gray-100 hover:bg-pink-100 rounded-full w-10 h-10 font-bold">✕</button>
+            </div>
+            
+            <div class="relative mb-10">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-4xl text-cute-pink font-bold">$</span>
+                <input type="number" id="amount" placeholder="0" class="w-full text-5xl font-bold pl-12 pr-4 py-4 bg-pink-50 rounded-3xl text-cute-pink outline-none border-2 border-transparent focus:border-cute-pink transition-all text-center" autofocus>
+            </div>
+            
+            <div class="grid grid-cols-4 gap-3 mb-10">
+                <button onclick="setCategory('吃喝', this)" class="cat-btn btn-bounce border-2 border-cute-pink text-cute-pink py-3 rounded-2xl font-bold text-sm flex flex-col items-center bg-pink-50">
+                    <span class="text-2xl mb-1">🍔</span>吃喝
+                </button>
+                <button onclick="setCategory('交通', this)" class="cat-btn btn-bounce border-2 border-cute-blue text-cute-blue py-3 rounded-2xl font-bold text-sm flex flex-col items-center bg-blue-50">
+                    <span class="text-2xl mb-1">🚗</span>交通
+                </button>
+                <button onclick="setCategory('玩樂', this)" class="cat-btn btn-bounce border-2 border-cute-yellow text-yellow-500 py-3 rounded-2xl font-bold text-sm flex flex-col items-center bg-yellow-50">
+                    <span class="text-2xl mb-1">🎉</span>玩樂
+                </button>
+                <button onclick="setCategory('其他', this)" class="cat-btn btn-bounce border-2 border-cute-green text-teal-500 py-3 rounded-2xl font-bold text-sm flex flex-col items-center bg-green-50">
+                    <span class="text-2xl mb-1">🛍️</span>其他
+                </button>
+            </div>
+
+            <button onclick="saveEntry()" class="btn-bounce w-full bg-cute-pink hover:bg-pink-400 text-white py-5 rounded-3xl font-bold text-xl shadow-lg shadow-pink-200">✨ 存檔！</button>
+        </div>
+    </div>
+
+    <script>
+        let selectedCategory = '其他';
+        // 定義分類對應的裝飾（圖示和顏色）
+        const categoryDecor = {
+            '吃喝': { emoji: '🍔', colorClass: 'text-cute-pink', bgClass: 'bg-pink-100' },
+            '交通': { emoji: '🚗', colorClass: 'text-cute-blue', bgClass: 'bg-blue-100' },
+            '玩樂': { emoji: '🎉', colorClass: 'text-yellow-500', bgClass: 'bg-yellow-100' },
+            '其他': { emoji: '🛍️', colorClass: 'text-teal-500', bgClass: 'bg-green-100' }
+        };
+
+        let records = JSON.parse(localStorage.getItem('my_cute_ledger') || '[]');
+
+        // 切換彈出視窗的顯示/隱藏，並加入動畫效果
+        function toggleModal() {
+            const m = document.getElementById('modal');
+            if (m.classList.contains('hidden')) {
+                m.classList.remove('hidden');
+                setTimeout(() => {
+                    m.classList.remove('opacity-0', 'scale-95');
+                    document.getElementById('amount').focus();
+                    // 預設選中第一個分類
+                    if(selectedCategory === '其他') setCategory('吃喝', document.querySelector('.cat-btn'));
+                }, 10);
+            } else {
+                m.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => m.classList.add('hidden'), 300);
+            }
+        }
+
+        // 設定選擇的分類，並改變按鈕樣式
+        function setCategory(cat, btnElement) {
+            selectedCategory = cat;
+            // 重置所有按鈕樣式
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.classList.remove('bg-cute-pink', 'bg-cute-blue', 'bg-cute-yellow', 'bg-cute-green', 'text-white', 'border-transparent');
+                // 回復原本的淺色背景
+                if(btn.innerText.includes('吃喝')) btn.classList.add('bg-pink-50', 'text-cute-pink');
+                if(btn.innerText.includes('交通')) btn.classList.add('bg-blue-50', 'text-cute-blue');
+                if(btn.innerText.includes('玩樂')) btn.classList.add('bg-yellow-50', 'text-yellow-500');
+                if(btn.innerText.includes('其他')) btn.classList.add('bg-green-50', 'text-teal-500');
+            });
+
+            // 設定被選中按鈕的樣式 (變成實心顏色)
+            btnElement.classList.remove('bg-pink-50', 'bg-blue-50', 'bg-yellow-50', 'bg-green-50', 'text-cute-pink', 'text-cute-blue', 'text-yellow-500', 'text-teal-500');
+            btnElement.classList.add('text-white', 'border-transparent');
+            if(cat === '吃喝') btnElement.classList.add('bg-cute-pink');
+            if(cat === '交通') btnElement.classList.add('bg-cute-blue');
+            if(cat === '玩樂') btnElement.classList.add('bg-cute-yellow');
+            if(cat === '其他') btnElement.classList.add('bg-cute-green');
+        }
+
+        // 儲存紀錄
+        function saveEntry() {
+            const amountInput = document.getElementById('amount');
+            const amount = amountInput.value;
+            if(!amount || amount <= 0) {
+                // 簡單的搖晃動畫提示錯誤
+                amountInput.classList.add('animate-bounce');
+                setTimeout(() => amountInput.classList.remove('animate-bounce'), 500);
+                return;
+            }
+            
+            const entry = {
+                id: Date.now(), // 用時間戳記當作唯一 ID
+                amount: parseFloat(amount),
+                category: selectedCategory,
+                date: new Date().toISOString()
+            };
+
+            records.unshift(entry);
+            localStorage.setItem('my_cute_ledger', JSON.stringify(records));
+            
+            amountInput.value = '';
+            toggleModal();
+            render();
+        }
+
+        // 渲染畫面
+        function render() {
+            const list = document.getElementById('list');
+            const totalDisplay = document.getElementById('total-amount');
+            let total = 0;
+            const now = new Date();
+
+            list.innerHTML = '';
+            
+            if (records.length === 0) {
+                list.innerHTML = `<div class="text-center text-gray-400 py-10">還沒有紀錄，快去花錢錢！(誤)</div>`;
+            }
+
+            records.forEach((r, index) => {
+                const date = new Date(r.date);
+                // 累計當月支出
+                if(date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+                    total += r.amount;
+                }
+
+                // 只顯示最近 15 筆
+                if(index < 15) {
+                    const decor = categoryDecor[r.category] || categoryDecor['其他'];
+                    const timeString = `${date.getMonth()+1}/${date.getDate()} · ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+                    
+                    // 每一筆紀錄的卡片樣式
+                    list.innerHTML += `
+                        <div class="flex justify-between items-center bg-white p-4 rounded-3xl shadow-sm border-2 border-pink-50/50">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 ${decor.bgClass} rounded-2xl flex items-center justify-center text-2xl mr-4">
+                                    ${decor.emoji}
+                                </div>
+                                <div>
+                                    <div class="font-bold text-soft-brown">${r.category}</div>
+                                    <div class="text-gray-400 text-xs mt-1">${timeString}</div>
+                                </div>
+                            </div>
+                            <div class="font-black text-xl ${decor.colorClass}">-$${r.amount}</div>
+                        </div>
+                    `;
+                }
+            });
+
+            // 更新總金額顯示
+            totalDisplay.innerText = `$${total.toLocaleString()}`;
+        }
+
+        // 初始渲染
+        render();
+    </script>
+</body>
+</html>
